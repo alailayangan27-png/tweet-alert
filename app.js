@@ -1,12 +1,5 @@
 let users = [];
 
-// MULTI SERVER (ANTI DOWN)
-const servers = [
-  "https://nitter.net",
-  "https://nitter.poast.org",
-  "https://nitter.moomoo.me"
-];
-
 function save() {
   localStorage.setItem("users", JSON.stringify(users));
 }
@@ -58,33 +51,18 @@ function render() {
   });
 }
 
-// FETCH CEPAT + FALLBACK
+// 🔥 FETCH VIA BACKEND (NO ERROR)
 async function fetchTweet(username) {
-
-  for (let server of servers) {
-    try {
-      const res = await fetch(server + "/" + username);
-      const html = await res.text();
-
-      const match = html.match(/class="tweet-content[^>]*>(.*?)<\/div>/);
-
-      if (match) {
-        let text = match[1]
-          .replace(/<[^>]+>/g, "")
-          .trim();
-
-        return text.substring(0, 180);
-      }
-
-    } catch (err) {
-      console.log("Server gagal:", server);
-    }
+  try {
+    const res = await fetch("/api/tweet?user=" + username);
+    const data = await res.json();
+    return data.tweet;
+  } catch {
+    return null;
   }
-
-  return null;
 }
 
-// MONITOR
+// 🔥 MONITOR CEPAT
 async function monitor() {
 
   for (let i = 0; i < users.length; i++) {
@@ -122,8 +100,7 @@ async function monitor() {
 
 // INIT
 load();
-
 Notification.requestPermission();
 
-// SUPER CEPAT
+// ⚡ UPDATE CEPAT
 setInterval(monitor, 5000);
