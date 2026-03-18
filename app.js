@@ -1,5 +1,12 @@
 let users = [];
 
+// MULTI SERVER (ANTI DOWN)
+const servers = [
+  "https://nitter.net",
+  "https://nitter.poast.org",
+  "https://nitter.moomoo.me"
+];
+
 function save() {
   localStorage.setItem("users", JSON.stringify(users));
 }
@@ -21,7 +28,7 @@ function addUser() {
   users.push({
     name: username,
     lastTweet: "",
-    tweetText: ""
+    tweetText: "Loading..."
   });
 
   input.value = "";
@@ -29,8 +36,8 @@ function addUser() {
   render();
 }
 
-function removeUser(index) {
-  users.splice(index, 1);
+function removeUser(i) {
+  users.splice(i, 1);
   save();
   render();
 }
@@ -43,36 +50,43 @@ function render() {
     list.innerHTML += `
       <div class="card">
         <div class="name">@${u.name}</div>
-        <div class="tweet">${u.tweetText || "Loading..."}</div>
-        <div class="status" id="status-${i}">Waiting...</div>
+        <div class="tweet">${u.tweetText}</div>
+        <div class="status" id="status-${i}">Checking...</div>
         <button class="remove" onclick="removeUser(${i})">Remove</button>
       </div>
     `;
   });
 }
 
-// FETCH TWEET (NO WIDGET)
+// FETCH CEPAT + FALLBACK
 async function fetchTweet(username) {
-  try {
-    const res = await fetch(
-      "https://api.rss2json.com/v1/api.json?rss_url=https://nitter.net/" +
-      username +
-      "/rss"
-    );
 
-    const data = await res.json();
+  for (let server of servers) {
+    try {
+      const res = await fetch(server + "/" + username);
+      const html = await res.text();
 
-    if (!data.items || data.items.length === 0) return null;
+      const match = html.match(/class="tweet-content[^>]*>(.*?)<\/div>/);
 
-    return data.items[0].title;
+      if (match) {
+        let text = match[1]
+          .replace(/<[^>]+>/g, "")
+          .trim();
 
-  } catch {
-    return null;
+        return text.substring(0, 180);
+      }
+
+    } catch (err) {
+      console.log("Server gagal:", server);
+    }
   }
+
+  return null;
 }
 
 // MONITOR
 async function monitor() {
+
   for (let i = 0; i < users.length; i++) {
 
     const tweet = await fetchTweet(users[i].name);
@@ -83,15 +97,17 @@ async function monitor() {
       continue;
     }
 
-    // update UI tweet
     users[i].tweetText = tweet;
 
     if (users[i].lastTweet && tweet !== users[i].lastTweet) {
+
       status.innerText = "🚨 NEW TWEET!";
 
-      new Notification("New Tweet @" + users[i].name, {
-        body: tweet
-      });
+      if (Notification.permission === "granted") {
+        new Notification("New Tweet @" + users[i].name, {
+          body: tweet
+        });
+      }
 
     } else {
       status.innerText = "Updated";
@@ -109,5 +125,5 @@ load();
 
 Notification.requestPermission();
 
-// refresh tiap 10 detik
-setInterval(monitor, 10000);
+// SUPER CEPAT
+setInterval(monitor, 5000);
