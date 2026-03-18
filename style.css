@@ -46,19 +46,15 @@ button {
 
 .name {
   font-weight: bold;
-  font-size: 16px;
 }
 
 .tweet {
   margin-top: 10px;
-  font-size: 14px;
-  line-height: 1.4;
 }
 
 .status {
   font-size: 12px;
   opacity: 0.6;
-  margin-top: 5px;
 }
 
 .remove {
