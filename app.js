@@ -20,7 +20,8 @@ function addUser() {
 
   users.push({
     name: username,
-    lastTweet: ""
+    lastTweet: "",
+    tweetText: ""
   });
 
   input.value = "";
@@ -42,6 +43,7 @@ function render() {
     list.innerHTML += `
       <div class="card">
         <div class="name">@${u.name}</div>
+        <div class="tweet">${u.tweetText || "Loading..."}</div>
         <div class="status" id="status-${i}">Waiting...</div>
         <button class="remove" onclick="removeUser(${i})">Remove</button>
       </div>
@@ -49,7 +51,7 @@ function render() {
   });
 }
 
-// FETCH TWEET
+// FETCH TWEET (NO WIDGET)
 async function fetchTweet(username) {
   try {
     const res = await fetch(
@@ -69,19 +71,20 @@ async function fetchTweet(username) {
   }
 }
 
-// MONITOR LOOP
+// MONITOR
 async function monitor() {
-
   for (let i = 0; i < users.length; i++) {
 
     const tweet = await fetchTweet(users[i].name);
-
     const status = document.getElementById("status-" + i);
 
     if (!tweet) {
       status.innerText = "Error / Private";
       continue;
     }
+
+    // update UI tweet
+    users[i].tweetText = tweet;
 
     if (users[i].lastTweet && tweet !== users[i].lastTweet) {
       status.innerText = "🚨 NEW TWEET!";
@@ -91,13 +94,14 @@ async function monitor() {
       });
 
     } else {
-      status.innerText = "No update";
+      status.innerText = "Updated";
     }
 
     users[i].lastTweet = tweet;
   }
 
   save();
+  render();
 }
 
 // INIT
@@ -105,4 +109,5 @@ load();
 
 Notification.requestPermission();
 
+// refresh tiap 10 detik
 setInterval(monitor, 10000);
